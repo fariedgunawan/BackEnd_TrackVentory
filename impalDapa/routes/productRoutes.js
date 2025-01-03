@@ -4,7 +4,11 @@ const {
     addProduct,
     editProduct,
     deleteProduct,
-    getProductsByCategory
+    getProductsByCategory,
+    getUserProductStatsIn,
+    getUserProductTotal,
+    getUserProductStatsOut,
+    searchProductByName
 } = require('../controllers/productController');
 const authenticateToken = require('../middleware/authMiddleware');
 const router = express.Router();
@@ -16,4 +20,8 @@ router.post('/add', addProduct);
 router.put('/:id', editProduct);
 router.delete('/:id', deleteProduct);
 router.get('/filter', getProductsByCategory);
-module.exports = router;
+router.get('/user/stock-in',getUserProductStatsIn);
+router.get('/user/stock-out',getUserProductStatsOut);
+router.get('/user/total-product',getUserProductTotal);
+router.get('/search', searchProductByName);
+module.exports = router;    
