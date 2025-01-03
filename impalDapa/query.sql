@@ -39,3 +39,9 @@ CREATE TABLE history (
     description VARCHAR(255),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+
+ALTER TABLE users
+ADD total_stock_in INT DEFAULT 0,
+ADD total_product INT DEFAULT 0,
+ADD total_stock_out INT DEFAULT 0

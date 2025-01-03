@@ -36,7 +36,18 @@ exports.addProduct = async (req, res) => {
             'INSERT INTO history (product_id,product_name, action, stock_change, user_id, description) VALUES (?, ?, ?, ?, ?, ?)',
             [result.insertId,name, 'ADD', quantity, userId, 'New product added']
         );
-        res.status(201).json({ message: 'Product added successfully', productId: result.insertId });
+
+        await pool.query(
+            `UPDATE users
+             SET total_stock_in = total_stock_in + ?, total_product = total_product + ?
+             WHERE id = ?`,
+            [quantity,quantity, userId]
+        );
+
+        res.status(201).json({
+            message: 'Product added successfully',
+            productId: result.insertId
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     } finally {
@@ -72,6 +83,23 @@ exports.editProduct = async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Product not found or not authorized' });
         }
+
+        if (stockChange > 0) {
+            await pool.query(
+                `UPDATE users
+                 SET total_stock_in = total_stock_in + ?, total_product = total_product + ?
+                 WHERE id = ?`,
+                [stockChange,stockChange, userId]
+            );
+        } else if (stockChange < 0) {
+            await pool.query(
+                `UPDATE users
+                 SET total_stock_out = total_stock_out + ?, total_product = total_product - ?
+                 WHERE id = ?`,
+                [Math.abs(stockChange), Math.abs(stockChange),userId]
+            );
+        }
+
 
         // Catat perubahan di tabel 'history'
         await pool.query(
@@ -116,6 +144,14 @@ exports.deleteProduct = async (req, res) => {
             return res.status(404).json({ message: 'Product not found or not authorized' });
         }
 
+         // Update statistik user setelah produk dihapus
+         await pool.query(
+            `UPDATE users
+             SET total_stock_out = total_stock_out + ?, total_product = total_product - ?
+             WHERE id = ?`,
+            [oldQuantity,oldQuantity, userId]
+        );
+
         await pool.query(
             'INSERT INTO history (product_id, product_name,action, stock_change, user_id, description) VALUES (?, ? ,?, ?, ?, ?)',
             [id,name ,'DELETE', -oldQuantity, userId, `Product deleted, stock decreased by ${oldQuantity}`]
@@ -154,4 +190,114 @@ exports.getProductsByCategory = async (req, res) => {
         pool.end();
     }
 };
+
+exports.getUserProductStatsIn = async (req, res) => {
+    const userId = req.user.id; 
+    const pool = createPool(req.app.locals.dbConfig);
+
+    try {
+        const [stats] = await pool.query(
+            `SELECT
+                total_stock_in
+            FROM users
+            WHERE id = ?`,
+            [userId]
+        );
+
+        if (stats.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(stats[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    } finally {
+        pool.end();
+    }
+};
+
+exports.getUserProductTotal = async (req, res) => {
+    const userId = req.user.id; 
+    const pool = createPool(req.app.locals.dbConfig);
+
+    try {
+        const [stats] = await pool.query(
+            `SELECT
+                total_product
+            FROM users
+            WHERE id = ?`,
+            [userId]
+        );
+
+        if (stats.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(stats[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    } finally {
+        pool.end();
+    }
+};
+
+exports.getUserProductStatsOut = async (req, res) => {
+    const userId = req.user.id;
+    const pool = createPool(req.app.locals.dbConfig);
+
+    try {
+        const [stats] = await pool.query(
+            `SELECT
+                total_stock_out
+            FROM users
+            WHERE id = ?`,
+            [userId]
+        );
+
+        if (stats.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(stats[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    } finally {
+        pool.end();
+    }
+};
+
+exports.searchProductByName = async (req, res) => {
+    const { name } = req.query; // Mengambil nama produk dari parameter query
+    const userId = req.user.id; // Mengambil userId dari autentikasi (misalnya JWT)
+    const pool = createPool(req.app.locals.dbConfig);
+
+    try {
+        if (!name) {
+            return res.status(400).json({ message: 'Product name is required for search' });
+        }
+
+        // Query pencarian produk berdasarkan nama (case-insensitive)
+        const [products] = await pool.query(
+            `SELECT p.id, p.name, c.name AS category, p.quantity, p.last_input_date
+             FROM products p
+             JOIN categories c ON p.category_id = c.id
+             WHERE p.user_id = ? AND p.name LIKE ?`,
+            [userId, `%${name}%`] // Menggunakan wildcard untuk pencarian
+        );
+
+        if (products.length === 0) {
+            return res.status(404).json({ message: 'No products found matching the search term' });
+        }
+
+        res.json(products); // Mengembalikan daftar produk yang cocok
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    } finally {
+        pool.end();
+    }
+};
+
+
+
+
+
 
