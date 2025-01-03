@@ -27,3 +27,15 @@ CREATE TABLE products (
 
 -- Insert beberapa kategori
 INSERT INTO categories (name) VALUES ('Electronics'), ('Clothing'), ('Books');
+
+CREATE TABLE history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT, -- Tidak menggunakan ON DELETE CASCADE agar data tetap ada
+    user_id INT NOT NULL,
+    product_name VARCHAR(255) NOT NULL, -- Menyimpan nama produk untuk pelacakan
+    action ENUM('ADD', 'EDIT', 'DELETE') NOT NULL,
+    action_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    stock_change INT NOT NULL,
+    description VARCHAR(255),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
