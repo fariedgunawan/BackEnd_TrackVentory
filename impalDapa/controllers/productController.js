@@ -296,6 +296,33 @@ exports.searchProductByName = async (req, res) => {
     }
 };
 
+exports.getProductById = async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const pool = createPool(req.app.locals.dbConfig);
+
+    try {
+        const [product] = await pool.query(
+            `SELECT p.id, p.name, c.name AS category, p.quantity, p.last_input_date
+            FROM products p
+            JOIN categories c ON p.category_id = c.id
+            WHERE p.user_id = ? AND p.id = ?`,
+            [userId, id]
+        );
+
+        if (product.length === 0) {
+            return res.status(404).json({ message: 'Product not found or not authorized' });
+        }
+
+        res.json(product[0]); // Return the single product
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    } finally {
+        pool.end();
+    }
+};
+
+
 
 
 

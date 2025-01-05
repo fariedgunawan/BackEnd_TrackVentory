@@ -8,7 +8,8 @@ const {
     getUserProductStatsIn,
     getUserProductTotal,
     getUserProductStatsOut,
-    searchProductByName
+    searchProductByName,
+    getProductById
 } = require('../controllers/productController');
 const authenticateToken = require('../middleware/authMiddleware');
 const router = express.Router();
@@ -24,4 +25,6 @@ router.get('/user/stock-in',getUserProductStatsIn);
 router.get('/user/stock-out',getUserProductStatsOut);
 router.get('/user/total-product',getUserProductTotal);
 router.get('/search', searchProductByName);
+router.get('/:id',getProductById);
+
 module.exports = router;    
