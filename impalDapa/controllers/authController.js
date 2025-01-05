@@ -8,6 +8,14 @@ const JWT_EXPIRES_IN = '1d';
 
 exports.register = async (req, res) => {
     const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    if (name.trim() === '' || email.trim() === '' || password.trim() === '') {
+        return res.status(400).json({ error: 'Fields cannot be empty strings' });
+    }
+
     const pool = createPool(req.app.locals.dbConfig);
 
     try {
