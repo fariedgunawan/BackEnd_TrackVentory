@@ -1,6 +1,6 @@
-CREATE DATABASE trackventory;
+CREATE DATABASE trackventorybener;
 
-USE trackventory;
+USE trackventorybener;
 
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
